@@ -401,4 +401,266 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 </script>
 
+<script>
+    // Smart Search Implementation
+    (function() {
+        const searchInput = document.getElementById('headerSearchInput');
+        const clearBtn = document.getElementById('clearSearchBtn');
+        const suggestionsBox = document.getElementById('searchSuggestions');
+        const suggestionsList = document.getElementById('suggestionsList');
+        const loadingState = document.getElementById('searchLoading');
+        const noResults = document.getElementById('noResults');
+        const viewAllResults = document.getElementById('viewAllResults');
+        const viewAllLink = document.getElementById('viewAllLink');
+        const autoCorrectDiv = document.getElementById('autoCorrectSuggestion');
+        const correctedTermBtn = document.getElementById('correctedTerm');
+        
+        let searchTimeout;
+        let currentSearch = '';
+        
+        // Common spelling corrections dictionary
+        const spellingCorrections = {
+            'tnet': 'tent',
+            'tnets': 'tents',
+            'sleping': 'sleeping',
+            'sleepng': 'sleeping',
+            'awing': 'awning',
+            'awnings': 'awnings',
+            'fridg': 'fridge',
+            'fridges': 'fridges',
+            'coker': 'cooker',
+            'elecrical': 'electrical',
+            'electical': 'electrical',
+            'bahtroom': 'bathroom',
+            'bathrom': 'bathroom',
+            'kichen': 'kitchen',
+            'kitchn': 'kitchen',
+            'campin': 'camping',
+            'campng': 'camping',
+            'carvan': 'caravan',
+            'caravans': 'caravans',
+            'motorhome': 'motorhome',
+            'motohhome': 'motorhome',
+            'furntiure': 'furniture',
+            'furnitue': 'furniture',
+            'acessories': 'accessories',
+            'accesories': 'accessories'
+        };
+        
+        // Levenshtein distance for fuzzy matching
+        function levenshteinDistance(str1, str2) {
+            const matrix = [];
+            
+            for (let i = 0; i <= str2.length; i++) {
+                matrix[i] = [i];
+            }
+            
+            for (let j = 0; j <= str1.length; j++) {
+                matrix[0][j] = j;
+            }
+            
+            for (let i = 1; i <= str2.length; i++) {
+                for (let j = 1; j <= str1.length; j++) {
+                    if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+                        matrix[i][j] = matrix[i - 1][j - 1];
+                    } else {
+                        matrix[i][j] = Math.min(
+                            matrix[i - 1][j - 1] + 1,
+                            matrix[i][j - 1] + 1,
+                            matrix[i - 1][j] + 1
+                        );
+                    }
+                }
+            }
+            
+            return matrix[str2.length][str1.length];
+        }
+        
+        // Auto-correct function
+        function autoCorrect(query) {
+            const words = query.toLowerCase().split(' ');
+            let corrected = false;
+            let correctedQuery = words.map(word => {
+                // Check exact match in corrections dictionary
+                if (spellingCorrections[word]) {
+                    corrected = true;
+                    return spellingCorrections[word];
+                }
+                return word;
+            }).join(' ');
+            
+            return { corrected: correctedQuery, wasCorrect: corrected };
+        }
+        
+        // Search products
+        async function searchProducts(query) {
+            try {
+                const response = await fetch(`api/products.php?search=${encodeURIComponent(query)}&limit=10`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    return data.products;
+                }
+                return [];
+            } catch (error) {
+                console.error('Search error:', error);
+                return [];
+            }
+        }
+        
+        // Render suggestions
+        function renderSuggestions(products, originalQuery, correctedQuery) {
+            suggestionsList.innerHTML = '';
+            
+            if (products.length === 0) {
+                noResults.classList.remove('hidden');
+                viewAllResults.classList.add('hidden');
+                return;
+            }
+            
+            noResults.classList.add('hidden');
+            
+            // Show auto-correct suggestion if needed
+            if (correctedQuery && correctedQuery !== originalQuery) {
+                autoCorrectDiv.classList.remove('hidden');
+                correctedTermBtn.textContent = correctedQuery;
+                correctedTermBtn.onclick = () => {
+                    searchInput.value = correctedQuery;
+                    performSearch(correctedQuery);
+                };
+            } else {
+                autoCorrectDiv.classList.add('hidden');
+            }
+            
+            // Render product suggestions
+            products.forEach(product => {
+                const item = document.createElement('a');
+                item.href = `product-detail.php?id=${product.id}`;
+                item.className = 'flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition cursor-pointer border-b border-gray-100 last:border-0';
+                
+                const inStock = product.stock === 'In Stock' || product.quantity > 0;
+                
+                item.innerHTML = `
+                    <img src="${product.image}" alt="${product.name}" class="w-12 h-12 object-cover rounded">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900 truncate">${highlightMatch(product.name, originalQuery)}</p>
+                        <p class="text-xs text-gray-500 truncate">${product.brand || 'Generic'}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-semibold text-gray-900">£${parseFloat(product.price).toFixed(2)}</p>
+                        ${inStock ? '<p class="text-xs text-green-600">In Stock</p>' : '<p class="text-xs text-red-600">Out of Stock</p>'}
+                    </div>
+                `;
+                
+                suggestionsList.appendChild(item);
+            });
+            
+            // Show "View all results" link
+            viewAllResults.classList.remove('hidden');
+            viewAllLink.href = `product.php?search=${encodeURIComponent(originalQuery)}`;
+            viewAllLink.textContent = `View all results for "${originalQuery}" →`;
+        }
+        
+        // Highlight matching text
+        function highlightMatch(text, query) {
+            if (!query) return text;
+            
+            const regex = new RegExp(`(${query})`, 'gi');
+            return text.replace(regex, '<mark class="bg-yellow-200">$1</mark>');
+        }
+        
+        // Perform search
+        async function performSearch(query) {
+            if (!query || query.length < 2) {
+                suggestionsBox.classList.add('hidden');
+                return;
+            }
+            
+            currentSearch = query;
+            
+            // Show loading state
+            suggestionsBox.classList.remove('hidden');
+            loadingState.classList.remove('hidden');
+            suggestionsList.innerHTML = '';
+            noResults.classList.add('hidden');
+            viewAllResults.classList.add('hidden');
+            
+            // Auto-correct
+            const correction = autoCorrect(query);
+            const searchQuery = correction.wasCorrect ? correction.corrected : query;
+            
+            // Search products
+            const products = await searchProducts(searchQuery);
+            
+            // Only update if this is still the current search
+            if (currentSearch === query) {
+                loadingState.classList.add('hidden');
+                renderSuggestions(products, query, correction.wasCorrect ? correction.corrected : null);
+            }
+        }
+        
+        // Debounce function
+        function debounce(func, wait) {
+            return function executedFunction(...args) {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => func(...args), wait);
+            };
+        }
+        
+        const debouncedSearch = debounce(performSearch, 300);
+        
+        // Event listeners
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+            
+            if (query) {
+                clearBtn.classList.remove('hidden');
+                debouncedSearch(query);
+            } else {
+                clearBtn.classList.add('hidden');
+                suggestionsBox.classList.add('hidden');
+            }
+        });
+        
+        searchInput.addEventListener('focus', (e) => {
+            const query = e.target.value.trim();
+            if (query && query.length >= 2) {
+                suggestionsBox.classList.remove('hidden');
+            }
+        });
+        
+        // Clear button
+        clearBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            clearBtn.classList.add('hidden');
+            suggestionsBox.classList.add('hidden');
+            searchInput.focus();
+        });
+        
+        // Handle Enter key
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const query = searchInput.value.trim();
+                if (query) {
+                    window.location.href = `product.php?search=${encodeURIComponent(query)}`;
+                }
+            }
+        });
+        
+        // Close suggestions when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+                suggestionsBox.classList.add('hidden');
+            }
+        });
+        
+        // Handle ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                suggestionsBox.classList.add('hidden');
+            }
+        });
+    })();
+</script>
 

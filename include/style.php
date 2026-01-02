@@ -1070,9 +1070,46 @@
         .grid-icon.active, .list-icon.active {
             color: #0e703a;
         }
+         /* Custom styles for range slider */
+         input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e5e7eb;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            border: none;
+        }
+        
         .line-clamp-2 {
             display: -webkit-box;
             -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
@@ -1087,5 +1124,149 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        
+    </style>
+
+<style>
+    mark {
+        background-color: #fef08a;
+        color: inherit;
+        padding: 0;
+    }
+    
+    #searchSuggestions {
+        animation: fadeIn 0.2s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    #searchSuggestions::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    #searchSuggestions::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    
+    #searchSuggestions::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 3px;
+    }
+    
+    #searchSuggestions::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+</style>
+
+<style>
+        /* Custom styles for range slider */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e5e7eb;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        /* Wishlist and compare button animations */
+        .wishlist-btn, .compare-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .wishlist-btn:hover, .compare-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .wishlist-btn.active {
+            color: #ef4444;
+        }
+        
+        .compare-btn.active {
+            color: #3b82f6;
+        }
+        
+        /* Compare floating badge */
+        .compare-badge {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+
+<style>
+        .form-input:focus {
+            border-color: #0e703a;
+            box-shadow: 0 0 0 3px rgba(14, 112, 58, 0.1);
+        }
+        .btn-primary {
+            background-color: #0e703a;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #0a5a2d;
+        }
+        .error-message {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
         }
     </style>

@@ -9,9 +9,12 @@
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
-
+    
+    // Get or create user session ID (for guest users)
+    if (!isset($_SESSION['user_id'])) {
+        $_SESSION['user_id'] = session_id();
+    }
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -112,6 +115,32 @@
                 transform: translateY(0);
                 opacity: 1;
             }
+        }
+        
+        /* Loading button state */
+        .btn-loading {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+        
+        .btn-loading::after {
+            content: "";
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin-left: -8px;
+            margin-top: -8px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -297,6 +326,37 @@
         // Wishlist and Compare storage
         let wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
         let compareList = JSON.parse(localStorage.getItem('compareList') || '[]');
+        
+        // Load wishlist from server
+        async function loadWishlistFromServer() {
+            try {
+                const response = await fetch('api/wishlist.php');
+                const data = await response.json();
+                
+                if (data.success && data.wishlist) {
+                    wishlist = data.wishlist.map(item => item.product_id);
+                    localStorage.setItem('wishlist', JSON.stringify(wishlist));
+                    updateWishlistButtons();
+                    updateWishlistCount(wishlist.length);
+                }
+            } catch (error) {
+                console.error('Error loading wishlist:', error);
+            }
+        }
+        
+        // Load cart count from server
+        async function loadCartCount() {
+            try {
+                const response = await fetch('api/cart.php');
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateCartCount(data.total_items || 0);
+                }
+            } catch (error) {
+                console.error('Error loading cart count:', error);
+            }
+        }
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', () => {
@@ -305,6 +365,8 @@
             updateBreadcrumb();
             initializePriceRange();
             updateCompareBadge();
+            loadWishlistFromServer();
+            loadCartCount();
         });
 
         // Load products from API
@@ -341,21 +403,46 @@
         }
 
         // Wishlist functions
-        function toggleWishlist(productId, event) {
+        async function toggleWishlist(productId, event) {
             event.preventDefault();
             event.stopPropagation();
             
             const index = wishlist.indexOf(productId);
-            if (index > -1) {
-                wishlist.splice(index, 1);
-                showNotification('Removed from wishlist', 'info');
-            } else {
-                wishlist.push(productId);
-                showNotification('Added to wishlist', 'success');
-            }
+            const action = index > -1 ? 'remove' : 'add';
             
-            localStorage.setItem('wishlist', JSON.stringify(wishlist));
-            updateWishlistButtons();
+            try {
+                const response = await fetch('api/wishlist.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: action,
+                        product_id: productId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (action === 'remove') {
+                        wishlist.splice(index, 1);
+                        showNotification('Removed from wishlist', 'info');
+                    } else {
+                        wishlist.push(productId);
+                        showNotification('Added to wishlist', 'success');
+                    }
+                    
+                    localStorage.setItem('wishlist', JSON.stringify(wishlist));
+                    updateWishlistButtons();
+                    updateWishlistCount(data.wishlist_count || wishlist.length);
+                } else {
+                    showNotification(data.message || 'Failed to update wishlist', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating wishlist:', error);
+                showNotification('An error occurred. Please try again.', 'error');
+            }
         }
 
         function updateWishlistButtons() {
@@ -369,6 +456,19 @@
                     btn.innerHTML = '<i class="far fa-heart"></i>';
                 }
             });
+        }
+        
+        // Update wishlist count in header
+        function updateWishlistCount(count) {
+            const wishlistBadge = document.querySelector('.wishlist-count, #wishlistCount');
+            if (wishlistBadge) {
+                wishlistBadge.textContent = count;
+                if (count > 0) {
+                    wishlistBadge.classList.remove('hidden');
+                } else {
+                    wishlistBadge.classList.add('hidden');
+                }
+            }
         }
 
         // Compare functions
@@ -637,6 +737,16 @@
             document.querySelectorAll('.compare-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => toggleCompare(parseInt(btn.dataset.productId), e));
             });
+            
+            // Attach add to cart event listeners
+            document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const productId = parseInt(btn.dataset.productId);
+                    addToCart(productId, btn);
+                });
+            });
         }
 
         function createProductCardGrid(product) {
@@ -647,58 +757,59 @@
             const inCompare = compareList.includes(product.id);
             
             return `
-                <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition overflow-hidden group">
+                <div  class="bg-white rounded-lg shadow-sm hover:shadow-md transition overflow-hidden group block">
                     <div class="relative">
-                        <img src="${product.image}" alt="${product.name}" class="w-full h-48 object-cover">
-                        
+                        <a href="product_detail.php?id=${product.id}">
+                            <img src="${product.image}" alt="${product.name}" class="w-full h-48 object-cover">
+                        </a>
                         <div class="absolute top-2 left-2 flex flex-col gap-2">
                             <button class="wishlist-btn ${inWishlist ? 'active' : ''} bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-md hover:shadow-lg text-gray-600 hover:text-red-500" 
                                     data-product-id="${product.id}" title="Add to Wishlist">
                                 <i class="${inWishlist ? 'fas' : 'far'} fa-heart"></i>
                             </button>
-                            <button class="compare-btn ${inCompare ? 'active' : ''} bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-md hover:shadow-lg text-gray-600 hover:text-blue-500" 
-                                    data-product-id="${product.id}" title="Add to Compare">
-                                <i class="fas fa-balance-scale"></i>
-                            </button>
+                            <button class="compare-btn ${inCompare ? 'active' : ''} bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-md hover:shadow-lg text-gray-600 hover:text-blue-500" data-product-id="${product.id}" title="Add to Compare"><i class="fas fa-balance-scale"></i></button>
                         </div>
-                        
+
                         <div class="absolute top-2 right-2 flex flex-col gap-1">
-                            ${isNew ? '<span class="bg-green-500 text-white text-xs px-2 py-1 rounded">NEW</span>' : ''}
-                            ${isPopular ? '<span class="bg-blue-500 text-white text-xs px-2 py-1 rounded">POPULAR</span>' : ''}
-                        </div>
-                        ${!inStock ? '<div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"><span class="bg-red-500 text-white px-4 py-2 rounded">Out of Stock</span></div>' : ''}
+                        ${isNew ? '<span class="bg-green-500 text-white text-xs px-2 py-1 rounded">NEW</span>' : ''}
+                        ${isPopular ? '<span class="bg-blue-500 text-white text-xs px-2 py-1 rounded">POPULAR</span>' : ''}
                     </div>
-                    <div class="p-4">
+                    ${!inStock ? '<div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"><span class="bg-red-500 text-white px-4 py-2 rounded">Out of Stock</span></div>' : ''}
+                </div>
+                <div class="p-4">
+                    <a href="product_detail.php?id=${product.id}" >
                         <p class="text-xs text-gray-500 mb-1">${product.brand || 'Generic'}</p>
                         <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2">${product.name}</h3>
                         <p class="text-sm text-gray-600 mb-3 line-clamp-2">${product.description || ''}</p>
-                        <div class="flex justify-between items-center">
-                            <span class="text-xl font-bold text-gray-900">£${parseFloat(product.price).toFixed(2)}</span>
-                            ${inStock ? `
-                                <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition">
-                                    Add to Cart
-                                </button>
-                            ` : `
-                                <button disabled class="bg-gray-300 text-gray-500 px-4 py-2 rounded text-sm cursor-not-allowed">
-                                    Out of Stock
-                                </button>
-                            `}
-                        </div>
+                    </a>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xl font-bold text-gray-900">£${parseFloat(product.price).toFixed(2)}</span>
+                        ${inStock ? `
+                            <button class="add-to-cart-btn bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded transition" data-product-id="${product.id}">
+                                Add to Cart
+                            </button>
+                        ` : `
+                            <button disabled class="bg-gray-300 text-gray-500 px-4 py-2 rounded text-sm cursor-not-allowed">
+                                Out of Stock
+                            </button>
+                        `}
                     </div>
                 </div>
-            `;
-        }
+            </div>
+        `;
+    }
 
-        function createProductCardList(product) {
-            const isNew = product.is_new == 1;
-            const isPopular = product.is_popular == 1;
-            const inStock = product.stock === 'In Stock' || product.quantity > 0;
-            const inWishlist = wishlist.includes(product.id);
-            const inCompare = compareList.includes(product.id);
-            
-            return `
-                <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition overflow-hidden">
-                    <div class="flex flex-col sm:flex-row">
+    function createProductCardList(product) {
+        const isNew = product.is_new == 1;
+        const isPopular = product.is_popular == 1;
+        const inStock = product.stock === 'In Stock' || product.quantity > 0;
+        const inWishlist = wishlist.includes(product.id);
+        const inCompare = compareList.includes(product.id);
+        
+        return `
+            <div  class="bg-white rounded-lg shadow-sm hover:shadow-md transition overflow-hidden block">
+                <div class="flex flex-col sm:flex-row">
+                    <a href="product_detail.php?id=${product.id}">
                         <div class="relative sm:w-64 flex-shrink-0">
                             <img src="${product.image}" alt="${product.name}" class="w-full h-48 sm:h-full object-cover">
                             
@@ -715,7 +826,10 @@
                             
                             ${!inStock ? '<div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"><span class="bg-red-500 text-white px-4 py-2 rounded text-sm">Out of Stock</span></div>' : ''}
                         </div>
-                        <div class="flex-1 p-6 flex flex-col">
+                    </a>
+
+                    <div class="flex-1 p-6 flex flex-col">
+                        <a href="product_detail.php?id=${product.id}">
                             <div class="flex items-start justify-between mb-2">
                                 <div>
                                     <p class="text-xs text-gray-500 mb-1">${product.brand || 'Generic'}</p>
@@ -728,191 +842,255 @@
                                 </div>
                             </div>
                             <p class="text-sm text-gray-600 mb-4 line-clamp-3 flex-1">${product.description || 'No description available'}</p>
-                            <div class="flex items-center justify-between mt-auto">
-                                <span class="text-2xl font-bold text-gray-900">£${parseFloat(product.price).toFixed(2)}</span>
-                                ${inStock ? `
-                                    <div class="flex gap-2">
-                                        <button class="border border-blue-600 text-blue-600 hover:bg-blue-50 px-4 py-2 rounded transition">
-                                            View Details
-                                        </button>
-                                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded transition">
-                                            Add to Cart
-                                        </button>
-                                    </div>
-                                ` : `
-                                    <button disabled class="bg-gray-300 text-gray-500 px-6 py-2 rounded cursor-not-allowed">
-                                        Out of Stock
+                        </a>
+
+                        <div class="flex items-center justify-between mt-auto">
+                            <span class="text-2xl font-bold text-gray-900">£${parseFloat(product.price).toFixed(2)}</span>
+                            ${inStock ? `
+                                <div class="flex gap-2">
+                                    <button onclick="event.preventDefault(); event.stopPropagation(); window.location.href='product_detail.php?id=${product.id}'" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded transition">
+                                        View Details
                                     </button>
-                                `}
-                            </div>
+                                    <button class="add-to-cart-btn bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded transition" data-product-id="${product.id}">
+                                        Add to Cart
+                                    </button>
+                                    
+                                </div>
+                            ` : `
+                                <button disabled class="bg-gray-300 text-gray-500 px-6 py-2 rounded cursor-not-allowed">
+                                    Out of Stock
+                                </button>
+                            `}
                         </div>
                     </div>
                 </div>
-            `;
-        }
+            </div>
+        `;
+    }
 
-        function renderBrandFilters(brands) {
-            const container = document.getElementById('brandFilters');
-            
-            if (!brands || brands.length === 0) {
-                container.innerHTML = '<p class="text-sm text-gray-500">No brands available</p>';
-                return;
-            }
-            
-            container.innerHTML = brands.map(brand => `
-                <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
-                    <input type="checkbox" value="${brand.brand}" 
-                           class="brand-filter mr-2 rounded text-blue-600 focus:ring-blue-500"
-                           ${filters.brand === brand.brand ? 'checked' : ''}>
-                    <span class="text-sm text-gray-700">${brand.brand} <span class="text-gray-400">(${brand.count})</span></span>
-                </label>
-            `).join('');
-            
-            document.querySelectorAll('.brand-filter').forEach(checkbox => {
-                checkbox.addEventListener('change', applyAllFilters);
-            });
+    function renderBrandFilters(brands) {
+        const container = document.getElementById('brandFilters');
+        
+        if (!brands || brands.length === 0) {
+            container.innerHTML = '<p class="text-sm text-gray-500">No brands available</p>';
+            return;
         }
+        
+        container.innerHTML = brands.map(brand => `
+            <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                <input type="checkbox" value="${brand.brand}" 
+                       class="brand-filter mr-2 rounded text-blue-600 focus:ring-blue-500"
+                       ${filters.brand === brand.brand ? 'checked' : ''}>
+                <span class="text-sm text-gray-700">${brand.brand} <span class="text-gray-400">(${brand.count})</span></span>
+            </label>
+        `).join('');
+        
+        document.querySelectorAll('.brand-filter').forEach(checkbox => {
+            checkbox.addEventListener('change', applyAllFilters);
+        });
+    }
 
-        function applySorting() {
-            const sortValue = document.getElementById('sortSelect').value;
-            
-            switch(sortValue) {
-                case 'name-asc':
-                    filteredProducts.sort((a, b) => a.name.localeCompare(b.name));
-                    break;
-                case 'name-desc':
-                    filteredProducts.sort((a, b) => b.name.localeCompare(a.name));
-                    break;
-                case 'price-asc':
-                    filteredProducts.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
-                    break;
-                case 'price-desc':
-                    filteredProducts.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
-                    break;
-                case 'popular':
-                    filteredProducts.sort((a, b) => (b.is_popular || 0) - (a.is_popular || 0));
-                    break;
-                case 'new':
-                    filteredProducts.sort((a, b) => (b.is_new || 0) - (a.is_new || 0));
-                    break;
-            }
+    function applySorting() {
+        const sortValue = document.getElementById('sortSelect').value;
+        
+        switch(sortValue) {
+            case 'name-asc':
+                filteredProducts.sort((a, b) => a.name.localeCompare(b.name));
+                break;
+            case 'name-desc':
+                filteredProducts.sort((a, b) => b.name.localeCompare(a.name));
+                break;
+            case 'price-asc':
+                filteredProducts.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+                break;
+            case 'price-desc':
+                filteredProducts.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
+                break;
+            case 'popular':
+                filteredProducts.sort((a, b) => (b.is_popular || 0) - (a.is_popular || 0));
+                break;
+            case 'new':
+                filteredProducts.sort((a, b) => (b.is_new || 0) - (a.is_new || 0));
+                break;
         }
+    }
 
-        function setupEventListeners() {
-            const searchInput = document.getElementById('searchInput');
-            searchInput.value = filters.search;
-            searchInput.addEventListener('input', debounce(applyAllFilters, 300));
-            
-            document.getElementById('sortSelect').addEventListener('change', (e) => {
-                filters.sort = e.target.value;
-                applySorting();
-                renderProducts();
-            });
-            
-            document.getElementById('inStockOnly').addEventListener('change', (e) => {
-                filters.inStockOnly = e.target.checked;
-                applyAllFilters();
-            });
-            
-            document.getElementById('gridViewBtn').addEventListener('click', () => {
-                currentView = 'grid';
-                updateViewButtons();
-                renderProducts();
-            });
-            
-            document.getElementById('listViewBtn').addEventListener('click', () => {
-                currentView = 'list';
-                updateViewButtons();
-                renderProducts();
-            });
-            
-            document.getElementById('clearFilters').addEventListener('click', () => {
-                window.location.href = 'product.php';
-            });
-            
-            document.getElementById('loadMoreBtn').addEventListener('click', () => {
-                renderProducts(false);
-            });
-            
-            document.getElementById('viewCompareBtn').addEventListener('click', viewCompare);
-            document.getElementById('clearCompareBtn').addEventListener('click', clearCompare);
+    function setupEventListeners() {
+        const searchInput = document.getElementById('searchInput');
+        searchInput.value = filters.search;
+        searchInput.addEventListener('input', debounce(applyAllFilters, 300));
+        
+        document.getElementById('sortSelect').addEventListener('change', (e) => {
+            filters.sort = e.target.value;
+            applySorting();
+            renderProducts();
+        });
+        
+        document.getElementById('inStockOnly').addEventListener('change', (e) => {
+            filters.inStockOnly = e.target.checked;
+            applyAllFilters();
+        });
+        
+        document.getElementById('gridViewBtn').addEventListener('click', () => {
+            currentView = 'grid';
+            updateViewButtons();
+            renderProducts();
+        });
+        
+        document.getElementById('listViewBtn').addEventListener('click', () => {
+            currentView = 'list';
+            updateViewButtons();
+            renderProducts();
+        });
+        
+        document.getElementById('clearFilters').addEventListener('click', () => {
+            window.location.href = 'product.php';
+        });
+        
+        document.getElementById('loadMoreBtn').addEventListener('click', () => {
+            renderProducts(false);
+        });
+        
+        document.getElementById('viewCompareBtn').addEventListener('click', viewCompare);
+        document.getElementById('clearCompareBtn').addEventListener('click', clearCompare);
+    }
+
+    function updateViewButtons() {
+        const gridBtn = document.getElementById('gridViewBtn');
+        const listBtn = document.getElementById('listViewBtn');
+        
+        if (currentView === 'grid') {
+            gridBtn.classList.add('bg-white', 'shadow-sm');
+            listBtn.classList.remove('bg-white', 'shadow-sm');
+        } else {
+            listBtn.classList.add('bg-white', 'shadow-sm');
+            gridBtn.classList.remove('bg-white', 'shadow-sm');
         }
+    }
 
-        function updateViewButtons() {
-            const gridBtn = document.getElementById('gridViewBtn');
-            const listBtn = document.getElementById('listViewBtn');
-            
-            if (currentView === 'grid') {
-                gridBtn.classList.add('bg-white', 'shadow-sm');
-                listBtn.classList.remove('bg-white', 'shadow-sm');
-            } else {
-                listBtn.classList.add('bg-white', 'shadow-sm');
-                gridBtn.classList.remove('bg-white', 'shadow-sm');
-            }
+    function updatePageTitle() {
+        let title = 'Products';
+        
+        if (filters.category) {
+            title = formatCategoryName(filters.category);
         }
-
-        function updatePageTitle() {
-            let title = 'Products';
-            
-            if (filters.category) {
-                title = formatCategoryName(filters.category);
-            }
-            if (filters.subcategory) {
-                title += ' - ' + formatCategoryName(filters.subcategory);
-            }
-            if (filters.type) {
-                title += ' - ' + formatCategoryName(filters.type);
-            }
-            
-            document.getElementById('pageTitle').textContent = title;
-            document.title = title + ' - Jacksons Leisure';
+        if (filters.subcategory) {
+            title += ' - ' + formatCategoryName(filters.subcategory);
         }
-
-        function updateBreadcrumb() {
-            const breadcrumb = document.getElementById('breadcrumb-category');
-            let path = 'Products';
-            
-            if (filters.category) {
-                path = formatCategoryName(filters.category);
-            }
-            
-            breadcrumb.textContent = path;
+        if (filters.type) {
+            title += ' - ' + formatCategoryName(filters.type);
         }
+        
+        document.getElementById('pageTitle').textContent = title;
+        document.title = title + ' - Jacksons Leisure';
+    }
 
-        function updateProductCount() {
-            const count = document.getElementById('productCount');
-            count.textContent = `${filteredProducts.length} product${filteredProducts.length !== 1 ? 's' : ''} found`;
+    function updateBreadcrumb() {
+        const breadcrumb = document.getElementById('breadcrumb-category');
+        let path = 'Products';
+        
+        if (filters.category) {
+            path = formatCategoryName(filters.category);
         }
+        
+        breadcrumb.textContent = path;
+    }
 
-        function formatCategoryName(slug) {
-            return slug.split('-').map(word => 
-                word.charAt(0).toUpperCase() + word.slice(1)
-            ).join(' ');
-        }
+    function updateProductCount() {
+        const count = document.getElementById('productCount');
+        count.textContent = `${filteredProducts.length} product${filteredProducts.length !== 1 ? 's' : ''} found`;
+    }
 
-        function showError(message) {
-            document.getElementById('loadingState').classList.add('hidden');
-            document.getElementById('productsContainer').innerHTML = `
-                <div class="col-span-full text-center py-12 bg-white rounded-lg shadow-sm">
-                    <i class="fas fa-exclamation-triangle text-red-500 text-6xl mb-4"></i>
-                    <h3 class="text-xl font-semibold text-gray-700 mb-2">Error</h3>
-                    <p class="text-gray-500">${message}</p>
-                </div>
-            `;
-        }
+    function formatCategoryName(slug) {
+        return slug.split('-').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+    }
 
-        function debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
+    function showError(message) {
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('productsContainer').innerHTML = `
+            <div class="col-span-full text-center py-12 bg-white rounded-lg shadow-sm">
+                <i class="fas fa-exclamation-triangle text-red-500 text-6xl mb-4"></i>
+                <h3 class="text-xl font-semibold text-gray-700 mb-2">Error</h3>
+                <p class="text-gray-500">${message}</p>
+            </div>
+        `;
+    }
+
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
                 clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
+                func(...args);
             };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // Add to cart function with loading state
+    async function addToCart(productId, buttonElement = null) {
+        // Add loading state to button
+        if (buttonElement) {
+            buttonElement.disabled = true;
+            buttonElement.classList.add('btn-loading');
+            const originalText = buttonElement.textContent;
+            buttonElement.textContent = '';
         }
-    </script>
-
-</body>
-</html>
+        
+        try {
+            const response = await fetch('api/cart.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'add',
+                    product_id: productId,
+                    quantity: 1
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showNotification(data.message || 'Added to cart successfully', 'success');
+                updateCartCount(data.cart_count || data.total_items);
+            } else {
+                showNotification(data.message || 'Failed to add to cart', 'error');
+            }
+        } catch (error) {
+            console.error('Error adding to cart:', error);
+            showNotification('An error occurred. Please try again.', 'error');
+        } finally {
+            // Remove loading state
+            if (buttonElement) {
+                buttonElement.disabled = false;
+                buttonElement.classList.remove('btn-loading');
+                buttonElement.textContent = 'Add to Cart';
+            }
+        }
+    }
+    
+    // Update cart count in header
+    function updateCartCount(count) {
+        const cartBadge = document.querySelector('.cart-count, #cartCount');
+        if (cartBadge) {
+            cartBadge.textContent = count;
+            if (count > 0) {
+                cartBadge.classList.remove('hidden');
+            } else {
+                cartBadge.classList.add('hidden');
+            }
+        }
+        
+        // Also update cart icon badge if it exists
+        const cartBadgeAlt = document.querySelector('[data-cart-count]');
+        if (cartBadgeAlt) {
+            cartBadgeAlt.setAttribute('data-cart-count', count);
+            cartBadgeAlt.textContent = count;
+        }
+    }
+</script>

@@ -10,6 +10,110 @@
         session_start();
     }
 
+    // Fetch new products from database
+    require_once 'config.php';
+    
+    $newProducts = [];
+    $popularProducts = [];
+    
+    try {
+        $conn = getDbConnection();
+        
+        // Fetch new products (limit 6)
+        $newSql = "SELECT 
+                    id,
+                    product_name as name,
+                    sku_number as sku,
+                    price,
+                    brand_name as brand,
+                    stock_status as stock,
+                    quantity,
+                    product_description as description,
+                    image,
+                    category
+                FROM products 
+                WHERE is_new_product = 1
+                ORDER BY id DESC
+                LIMIT 6";
+        
+        $newResult = $conn->query($newSql);
+        if ($newResult) {
+            while ($row = $newResult->fetch_assoc()) {
+                // Generate placeholder image based on category
+                $categoryLower = strtolower($row['category'] ?? '');
+                $imageMap = [
+                    'awning' => 'assets/img/Products/product2.webp',
+                    'camping' => 'assets/img/Products/product1.webp',
+                    'caravan' => 'assets/img/Products/product8.jpg',
+                    'electrical' => 'assets/img/Products/product7.jpeg',
+                    'heating' => 'assets/img/Products/product4.jpg',
+                    'kitchen' => 'assets/img/Products/product3.jpg',
+                    'fridge' => 'assets/img/Products/product5.jpg',
+                    'water' => 'assets/img/Products/product6.jpeg'
+                ];
+                
+                $image = 'assets/img/Products/product1.webp'; // default
+                foreach ($imageMap as $key => $url) {
+                    if (strpos($categoryLower, $key) !== false) {
+                        $image = $url;
+                        break;
+                    }
+                }
+                
+                $row['image'] = $image;
+                $newProducts[] = $row;
+            }
+        }
+        
+        // Fetch popular products (limit 6)
+        $popularSql = "SELECT 
+                        id,
+                        product_name as name,
+                        sku_number as sku,
+                        price,
+                        brand_name as brand,
+                        stock_status as stock,
+                        quantity,
+                        product_description as description,
+                        image,
+                        category
+                    FROM products 
+                    WHERE is_popular_product = 1
+                    ORDER BY id DESC
+                    LIMIT 6";
+        
+        $popularResult = $conn->query($popularSql);
+        if ($popularResult) {
+            while ($row = $popularResult->fetch_assoc()) {
+                $categoryLower = strtolower($row['category'] ?? '');
+                $imageMap = [
+                    'awning' => 'assets/img/Products/product2.webp',
+                    'camping' => 'assets/img/Products/product1.webp',
+                    'caravan' => 'assets/img/Products/product8.jpg',
+                    'electrical' => 'assets/img/Products/product7.jpeg',
+                    'heating' => 'assets/img/Products/product4.jpg',
+                    'kitchen' => 'assets/img/Products/product3.jpg',
+                    'fridge' => 'assets/img/Products/product5.jpg',
+                    'water' => 'assets/img/Products/product6.jpeg'
+                ];
+                
+                $image = 'assets/img/Products/product1.webp';
+                foreach ($imageMap as $key => $url) {
+                    if (strpos($categoryLower, $key) !== false) {
+                        $image = $url;
+                        break;
+                    }
+                }
+                
+                $row['image'] = $image;
+                $popularProducts[] = $row;
+            }
+        }
+        
+        closeDbConnection($conn);
+    } catch (Exception $e) {
+        error_log("Error fetching products: " . $e->getMessage());
+    }
 ?>
 
 <!DOCTYPE html>
@@ -71,7 +175,7 @@
               <!-- Category Track -->
             <div class="category-track" id="categoryTrack">
                 <!-- Category 1: Campervan Conversions -->
-                <a href="#campervan-conversions" class="category-card">
+                <a href="product.php?category=campervan-conversions" class="category-card">
                     <img src="assets/img/campervan-conversions.jpg" alt="Campervan Conversions" onerror="this.src='https://images.unsplash.com/photo-1464219789935-c2d9d9aba644?w=500&h=600&fit=crop'">
                     <div class="category-title">
                         <h3 class="category-name">Campervan Conversions</h3>
@@ -79,7 +183,7 @@
                 </a>
                 
                 <!-- Category 2: Awnings -->
-                <a href="#awnings" class="category-card">
+                <a href="product.php?category=awnings" class="category-card">
                     <img src="assets/img/awnings.jpg" alt="Awnings" onerror="this.src='https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=500&h=600&fit=crop'">
                     <div class="category-title">
                         <h3 class="category-name">Awnings</h3>
@@ -87,7 +191,7 @@
                 </a>
                 
                 <!-- Category 3: Heating -->
-                <a href="#heating" class="category-card">
+                <a href="product.php?category=heating" class="category-card">
                     <img src="assets/img/heating.jpg" alt="Heating" onerror="this.src='https://images.unsplash.com/photo-1545259742-24c4ab201b9f?w=500&h=600&fit=crop'">
                     <div class="category-title">
                         <h3 class="category-name">Heating</h3>
@@ -95,7 +199,7 @@
                 </a>
                 
                 <!-- Category 4: Electrical -->
-                <a href="#electrical" class="category-card">
+                <a href="product.php?category=electrical" class="category-card">
                     <img src="assets/img/electrical.jpg" alt="Electrical" onerror="this.src='https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=500&h=600&fit=crop'">
                     <div class="category-title">
                         <h3 class="category-name">Electrical</h3>
@@ -103,7 +207,7 @@
                 </a>
                 
                 <!-- Category 5: Water Systems -->
-                <a href="#water-systems" class="category-card">
+                <a href="product.php?category=water-systems" class="category-card">
                     <img src="assets/img/water-systems.jpg" alt="Water Systems" onerror="this.src='https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=500&h=600&fit=crop'">
                     <div class="category-title">
                         <h3 class="category-name">Water Systems</h3>
@@ -111,7 +215,7 @@
                 </a>
                 
                 <!-- Category 6: Camping -->
-                <a href="#camping" class="category-card">
+                <a href="product.php?category=camping" class="category-card">
                     <img src="assets/img/camping.jpg" alt="Camping" onerror="this.src='https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=500&h=600&fit=crop'">
                     <div class="category-title">
                         <h3 class="category-name">Camping</h3>
@@ -119,7 +223,7 @@
                 </a>
                 
                 <!-- Category 7: Caravan Accessories -->
-                <a href="#caravan-accessories" class="category-card">
+                <a href="product.php?category=caravan-accessories" class="category-card">
                     <img src="assets/img/caravan-accessories.jpg" alt="Caravan Accessories" onerror="this.src='https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?w=500&h=600&fit=crop'">
                     <div class="category-title">
                         <h3 class="category-name">Caravan Accessories</h3>
@@ -127,8 +231,6 @@
                 </a>
             </div>
             
-
-                
                 <!-- Right Arrow -->
                 <button class="slider-nav right" id="nextBtn" aria-label="Next categories">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -202,10 +304,10 @@
                     
                     <!-- CTA Buttons -->
                     <div class="flex flex-col sm:flex-row gap-4">
-                        <a href="#conversion-kits" class="btn-primary">
+                        <a href="product.php?category=conversion-kits" class="btn-primary">
                             View Conversion Kits
                         </a>
-                        <a href="#equipment" class="btn-secondary">
+                        <a href="product.php?category=equipment" class="btn-secondary">
                             Browse Equipment
                         </a>
                     </div>
@@ -231,222 +333,57 @@
             
             <!-- Products Carousel -->
             <div class="products-carousel">
-                <div class="products-track" id="productsTrack">
-                    <!-- Product 1: Vango Sunlight Air ProShield -->
-                    <div class="product-card">
-                        <div class="product-image">
-                            <span class="new-badge">NEW</span>
-                            <img src="assets/Products/product2.webp" alt="Vango Sunlight Air ProShield">
+                <div class="products-track" id="newProductsTrack">
+                    <?php if (!empty($newProducts)): ?>
+                        <?php foreach ($newProducts as $product): ?>
+                            <?php 
+                                $inStock = $product['stock'] === 'In Stock' || $product['quantity'] > 0;
+                            ?>
+                            <div class="product-card">
+                                <div class="product-image">
+                                    <span class="new-badge">NEW</span>
+                                    <a href="product_detail.php?id=<?php echo $product['id']; ?>">
+                                        <img src="<?php echo htmlspecialchars($product['image']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
+                                    </a>
+                                    <div class="absolute top-2 left-2 flex flex-col gap-2">
+                                        <button class="wishlist-btn bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-md hover:shadow-lg text-gray-600 hover:text-red-500" 
+                                                data-product-id="<?php echo $product['id']; ?>" 
+                                                title="Add to Wishlist">
+                                            <i class="far fa-heart"></i>
+                                        </button>
+                                        <button class="compare-btn bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-md hover:shadow-lg text-gray-600 hover:text-blue-500" 
+                                                data-product-id="<?php echo $product['id']; ?>" 
+                                                title="Add to Compare">
+                                            <i class="fas fa-balance-scale"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="product-info">
+                                    <a href="product_detail.php?id=<?php echo $product['id']; ?>">
+                                        <p class="text-xs text-gray-500 mb-1"><?php echo htmlspecialchars($product['brand'] ?: 'Generic'); ?></p>
+                                        <h3 class="product-name"><?php echo htmlspecialchars($product['name']); ?></h3>
+                                        <p class="text-sm text-gray-600 mb-3 line-clamp-2"><?php echo htmlspecialchars(substr($product['description'] ?: '', 0, 100)); ?></p>
+                                    </a>
+                                    <div class="flex justify-between items-center">
+                                        <div class="product-price">£<?php echo number_format($product['price'], 2); ?></div>
+                                        <?php if ($inStock): ?>
+                                            <button class="add-to-cart-btn" data-product-id="<?php echo $product['id']; ?>">
+                                                Add to Cart
+                                            </button>
+                                        <?php else: ?>
+                                            <button disabled class="bg-gray-300 text-gray-500 px-4 py-2 rounded text-sm cursor-not-allowed">
+                                                Out of Stock
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="col-span-full text-center py-8">
+                            <p class="text-gray-500">No new products available at the moment.</p>
                         </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Vango Sunlight Air ProShield 2-in-1 Awning & Sun Canopy</h3>
-                            <div class="product-price">£555.00</div>
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 2: Leisurewize Air Fryer -->
-                    <div class="product-card">
-                        <div class="product-image">
-                            <span class="new-badge">NEW</span>
-                            <img src="assets/img/Products/product3.jpg" alt="Leisurewize Air Fryer">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Leisurewize 1.7L Caravan Air Fryer with Digital Display</h3>
-                            <div class="product-price">£47.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 3: Outdoor Revolution Heater -->
-                    <div class="product-card">
-                        <div class="product-image">
-                            <span class="new-badge">NEW</span>
-                            <img src="assets/img/Products/product4.jpg" alt="Outdoor Revolution Heater">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Outdoor Revolution Electric Eco Heater</h3>
-                            <div class="product-price">£39.95</div>
-                           
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 4: Vango Groundbreaker Glow Peg Set -->
-                    <div class="product-card">
-                        <div class="product-image">
-                            <span class="new-badge">NEW</span>
-                            <img src="assets/img/Products/product1.webp" alt="Vango Peg Set">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Vango Groundbreaker Glow Peg Set</h3>
-                            <div class="product-price">£14.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 5: Igloo Latitude 30 Cool Box -->
-                    <div class="product-card">
-                        <div class="product-image">
-                            <span class="new-badge">NEW</span>
-                            <img src="assets/img/Products/product5.jpg" alt="Igloo Cool Box">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Igloo Latitude 30 Camping Ice Cooler Box</h3>
-                            <div class="product-price">£49.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 6: Leisurewize Portawash -->
-                    <div class="product-card">
-                        <div class="product-image">
-                            <span class="new-badge">NEW</span>
-                            <img src="assets/img/Products/product6.jpeg" alt="Leisurewize Portawash">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Leisurewize Portawash Twin Tub Portable Washing Machine</h3>
-                            <div class="product-price">£109.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 7: Streetwize Inverter -->
-                    <div class="product-card">
-                        <div class="product-image">
-                            <span class="new-badge">NEW</span>
-                            <img src="assets/img/Products/product7.jpeg" alt="Streetwize Inverter">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Streetwize 12V Modified Sine Wave Inverter</h3>
-                            <div class="product-price">£29.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 8: Vango Beta 350XL Tent -->
-                    <div class="product-card">
-                        <div class="product-image">
-                            <span class="new-badge">NEW</span>
-                            <img src="assets/img/Products/product8.jpg" alt="Vango Beta Tent">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Vango Beta 350XL 3 Man Tunnel Tent</h3>
-                            <div class="product-price">£164.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Duplicate products for seamless loop -->
-                    <div class="product-card">
-                        <div class="product-image">
-                            <span class="new-badge">NEW</span>
-                            <img src="assets/Products/product2.webp" alt="Vango Sunlight Air ProShield">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Vango Sunlight Air ProShield 2-in-1 Awning & Sun Canopy</h3>
-                            <div class="product-price">£555.00</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card">
-                        <div class="product-image">
-                            <span class="new-badge">NEW</span>
-                            <img src="assets/img/Products/product3.jpg" alt="Leisurewize Air Fryer">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Leisurewize 1.7L Caravan Air Fryer with Digital Display</h3>
-                            <div class="product-price">£47.95</div>
-                           
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card">
-                        <div class="product-image">
-                            <span class="new-badge">NEW</span>
-                            <img src="assets/img/Products/product4.jpg" alt="Outdoor Revolution Heater">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Outdoor Revolution Electric Eco Heater</h3>
-                            <div class="product-price">£39.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card">
-                        <div class="product-image">
-                            <span class="new-badge">NEW</span>
-                            <img src="assets/img/Products/product1.webp" alt="Vango Peg Set">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Vango Groundbreaker Glow Peg Set</h3>
-                            <div class="product-price">£14.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card">
-                        <div class="product-image">
-                            <span class="new-badge">NEW</span>
-                            <img src="assets/img/Products/product5.jpg" alt="Igloo Cool Box">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Igloo Latitude 30 Camping Ice Cooler Box</h3>
-                            <div class="product-price">£49.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card">
-                        <div class="product-image">
-                            <span class="new-badge">NEW</span>
-                            <img src="assets/img/Products/product6.jpeg" alt="Leisurewize Portawash">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Leisurewize Portawash Twin Tub Portable Washing Machine</h3>
-                            <div class="product-price">£109.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card">
-                        <div class="product-image">
-                            <span class="new-badge">NEW</span>
-                            <img src="assets/img/Products/product7.jpeg" alt="Streetwize Inverter">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Streetwize 12V Modified Sine Wave Inverter</h3>
-                            <div class="product-price">£29.95</div>
-                           
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card">
-                        <div class="product-image">
-                            <span class="new-badge">NEW</span>
-                            <img src="assets/img/Products/product8.jpg" alt="Vango Beta Tent">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Vango Beta 350XL 3 Man Tunnel Tent</h3>
-                            <div class="product-price">£164.95</div>
-                           
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
             
@@ -471,126 +408,68 @@
             <!-- Brands Carousel -->
             <div class="relative">
                 <div class="brands-track">
-                    <!-- Brand 1: Truma -->
+                    <!-- Brand logos remain the same -->
                     <div class="brand-logo">
                         <img src="assets/img/Brands/truma logo.png" alt="Truma" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>TRUMA</div>'">
                     </div>
-                    
-                    <!-- Brand 2: Dometic -->
-                    <!-- <div class="brand-logo">
-                        <img src="assets/img/Brands/dometic logo.png" alt="Dometic" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>DOMETIC</div>'">
-                    </div> -->
-                    
-                    <!-- Brand 3: Fiamma -->
                     <div class="brand-logo">
                         <img src="assets/img/Brands/M6_lg_Fiamma-1.jpg" alt="Fiamma" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>FIAMMA</div>'">
                     </div>
-                    
-                    <!-- Brand 4: Vango -->
                     <div class="brand-logo">
-                        <img src="assets/img/Brands/Vitrifrigo logo.png" alt="Vango" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>VANGO</div>'">
+                        <img src="assets/img/Brands/Vitrifrigo logo.png" alt="Vitrifrigo" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>VITRIFRIGO</div>'">
                     </div>
-                    
-                    <!-- Brand 5: Certikin -->
                     <div class="brand-logo">
                         <img src="assets/img/Brands/certikin brand logo.png" alt="Certikin" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>CERTIKIN</div>'">
                     </div>
-                    
-                    <!-- Brand 6: MAX AIR -->
                     <div class="brand-logo">
-                        <img src="assets/img/Brands/max logo.png" alt="MAX AIR" onerror="this.parentElement.innerHTML='<div class=\'brand-name\' style=\'font-size: 18px;\'>MAX<br>AIR</div>'">
+                        <img src="assets/img/Brands/max logo.png" alt="MAX AIR" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>MAX AIR</div>'">
                     </div>
-                    
-                    <!-- Brand 7: PROPEX -->
                     <div class="brand-logo">
                         <img src="assets/img/Brands/propex logo.png" alt="PROPEX" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>PROPEX</div>'">
                     </div>
-                    
-                    <!-- Brand 8: REIMO -->
                     <div class="brand-logo">
-                        <img src="assets/img/Brands/reimo logo.jpg" alt="REIMO" onerror="this.parentElement.innerHTML='<div class=\'brand-name\' style=\'font-size: 18px;\'>REIMO</div>'">
+                        <img src="assets/img/Brands/reimo logo.jpg" alt="REIMO" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>REIMO</div>'">
                     </div>
-                    
-                    <!-- Brand 9: VICTRON -->
                     <div class="brand-logo">
-                        <img src="assets/img/Brands/Thule logo.png" alt="Thule" onerror="this.parentElement.innerHTML='<div class=\'brand-name\' style=\'font-size: 18px;\'>THULE</div>'">
+                        <img src="assets/img/Brands/Thule logo.png" alt="Thule" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>THULE</div>'">
                     </div>
-                    
-                    <!-- Brand 10: Thetford -->
                     <div class="brand-logo">
                         <img src="assets/img/Brands/thetford-vector-logo.png" alt="Thetford" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>THETFORD</div>'">
                     </div>
-                    
-                    <!-- Brand 11: Avtex -->
                     <div class="brand-logo">
-                        <img src="assets/img/Brands/Sr Smith.jpg" alt="Avtex" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>SR<br>SMITH</div>'">
+                        <img src="assets/img/Brands/Sr Smith.jpg" alt="SR Smith" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>SR SMITH</div>'">
                     </div>
-                    
-                    <!-- Brand 12: Igloo -->
-                    <!-- <div class="brand-logo">
-                        <img src="assets/img/Brands/igloo logo.png" alt="Igloo" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>IGLOO</div>'">
-                    </div> -->
-                    
-                    <!-- Duplicate brands for seamless loop -->
-                    <!-- Brand 1: Truma -->
+                    <!-- Duplicate for seamless loop -->
                     <div class="brand-logo">
                         <img src="assets/img/Brands/truma logo.png" alt="Truma" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>TRUMA</div>'">
                     </div>
-                    
-                    <!-- Brand 2: Dometic -->
-                    <!-- <div class="brand-logo">
-                        <img src="assets/img/Brands/dometic logo.png" alt="Dometic" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>DOMETIC</div>'">
-                    </div> -->
-                    
-                    <!-- Brand 3: Fiamma -->
                     <div class="brand-logo">
                         <img src="assets/img/Brands/M6_lg_Fiamma-1.jpg" alt="Fiamma" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>FIAMMA</div>'">
                     </div>
-                    
-                    <!-- Brand 4: Vango -->
                     <div class="brand-logo">
-                        <img src="assets/img/Brands/Vitrifrigo logo.png" alt="Vango" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>VANGO</div>'">
+                        <img src="assets/img/Brands/Vitrifrigo logo.png" alt="Vitrifrigo" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>VITRIFRIGO</div>'">
                     </div>
-                    
-                    <!-- Brand 5: Certikin -->
                     <div class="brand-logo">
                         <img src="assets/img/Brands/certikin brand logo.png" alt="Certikin" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>CERTIKIN</div>'">
                     </div>
-                    
-                    <!-- Brand 6: MAX AIR -->
                     <div class="brand-logo">
-                        <img src="assets/img/Brands/max logo.png" alt="MAX AIR" onerror="this.parentElement.innerHTML='<div class=\'brand-name\' style=\'font-size: 18px;\'>MAX<br>AIR</div>'">
+                        <img src="assets/img/Brands/max logo.png" alt="MAX AIR" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>MAX AIR</div>'">
                     </div>
-                    
-                    <!-- Brand 7: PROPEX -->
                     <div class="brand-logo">
                         <img src="assets/img/Brands/propex logo.png" alt="PROPEX" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>PROPEX</div>'">
                     </div>
-                    
-                    <!-- Brand 8: REIMO -->
                     <div class="brand-logo">
-                        <img src="assets/img/Brands/reimo logo.jpg" alt="REIMO" onerror="this.parentElement.innerHTML='<div class=\'brand-name\' style=\'font-size: 18px;\'>REIMO</div>'">
+                        <img src="assets/img/Brands/reimo logo.jpg" alt="REIMO" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>REIMO</div>'">
                     </div>
-                    
-                    <!-- Brand 9: Victron Energy -->
                     <div class="brand-logo">
-                        <img src="assets/img/Brands/Thule logo.png" alt="Thule" onerror="this.parentElement.innerHTML='<div class=\'brand-name\' style=\'font-size: 18px;\'>THULE</div>'">
+                        <img src="assets/img/Brands/Thule logo.png" alt="Thule" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>THULE</div>'">
                     </div>
-                    
-                    <!-- Brand 10: Thetford -->
                     <div class="brand-logo">
                         <img src="assets/img/Brands/thetford-vector-logo.png" alt="Thetford" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>THETFORD</div>'">
                     </div>
-                    
-                    <!-- Brand 11: Avtex -->
                     <div class="brand-logo">
-                        <img src="assets/img/Brands/Sr Smith.jpg" alt="Avtex" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>SR<br>SMITH</div>'">
+                        <img src="assets/img/Brands/Sr Smith.jpg" alt="SR Smith" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>SR SMITH</div>'">
                     </div>
-                    
-                    <!-- Brand 12: Igloo -->
-                    <!-- <div class="brand-logo">
-                        <img src="https://logo.clearbit.com/igloocoolers.com" alt="Igloo" onerror="this.parentElement.innerHTML='<div class=\'brand-name\'>IGLOO</div>'">
-                    </div> -->
                 </div>
             </div>
 
@@ -613,228 +492,63 @@
                     Popular Products
                 </h2>
                 <p class="text-gray-600 text-lg max-w-2xl mx-auto">
-                    Discover what Customers mainly buy to help you make the most of your outdoor adventures
+                    Discover what customers mainly buy to help you make the most of your outdoor adventures
                 </p>
             </div>
             
             <!-- Products Carousel -->
             <div class="products-carousel">
-                <div class="products-track" id="productsTrack">
-                    <!-- Product 1: Vango Sunlight Air ProShield -->
-                    <div class="product-card">
-                        <div class="product-image">
-                            <span class="popular-badge">Popular</span>
-                            <img src="assets/Products/product2.webp" alt="Vango Sunlight Air ProShield">
+                <div class="products-track" id="popularProductsTrack">
+                    <?php if (!empty($popularProducts)): ?>
+                        <?php foreach ($popularProducts as $product): ?>
+                            <?php 
+                                $inStock = $product['stock'] === 'In Stock' || $product['quantity'] > 0;
+                            ?>
+                            <div class="product-card">
+                                <div class="product-image">
+                                    <span class="popular-badge">Popular</span>
+                                    <a href="product_detail.php?id=<?php echo $product['id']; ?>">
+                                    <img src="<?php echo htmlspecialchars($product['image']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
+                                    </a>
+                                    <div class="absolute top-2 left-2 flex flex-col gap-2">
+                                        <button class="wishlist-btn bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-md hover:shadow-lg text-gray-600 hover:text-red-500" 
+                                                data-product-id="<?php echo $product['id']; ?>" 
+                                                title="Add to Wishlist">
+                                            <i class="far fa-heart"></i>
+                                        </button>
+                                        <button class="compare-btn bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-md hover:shadow-lg text-gray-600 hover:text-blue-500" 
+                                                data-product-id="<?php echo $product['id']; ?>" 
+                                                title="Add to Compare">
+                                            <i class="fas fa-balance-scale"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="product-info">
+                                    <a href="product_detail.php?id=<?php echo $product['id']; ?>">
+                                        <p class="text-xs text-gray-500 mb-1"><?php echo htmlspecialchars($product['brand'] ?: 'Generic'); ?></p>
+                                        <h3 class="product-name"><?php echo htmlspecialchars($product['name']); ?></h3>
+                                        <p class="text-sm text-gray-600 mb-3 line-clamp-2"><?php echo htmlspecialchars(substr($product['description'] ?: '', 0, 100)); ?></p>
+                                    </a>
+                                    <div class="flex justify-between items-center">
+                                        <div class="product-price">£<?php echo number_format($product['price'], 2); ?></div>
+                                        <?php if ($inStock): ?>
+                                            <button class="add-to-cart-btn" data-product-id="<?php echo $product['id']; ?>">
+                                                Add to Cart
+                                            </button>
+                                        <?php else: ?>
+                                            <button disabled class="bg-gray-300 text-gray-500 px-4 py-2 rounded text-sm cursor-not-allowed">
+                                                Out of Stock
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="col-span-full text-center py-8">
+                            <p class="text-gray-500">No popular products available at the moment.</p>
                         </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Hobbs</h3>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 2: Leisurewize Air Fryer -->
-                    <div class="product-card">
-                        <div class="product-image">
-                        <span class="popular-badge">Popular</span>
-                            <img src="assets/img/Products/product3.jpg" alt="Leisurewize Air Fryer">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Fridges</h3>
-                            <div class="product-price">£47.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 3: Outdoor Revolution Heater -->
-                    <div class="product-card">
-                        <div class="product-image">
-                        <span class="popular-badge">Popular</span>
-                            <img src="assets/img/Products/product4.jpg" alt="Outdoor Revolution Heater">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Rooflights</h3>
-                            <div class="product-price">£39.95</div>
-                           
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 4: Vango Groundbreaker Glow Peg Set -->
-                    <div class="product-card">
-                        <div class="product-image">
-                        <span class="popular-badge">Popular</span>
-                            <img src="assets/img/Products/product1.webp" alt="Vango Peg Set">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Sink</h3>
-                            <div class="product-price">£14.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 5: Igloo Latitude 30 Cool Box -->
-                    <div class="product-card">
-                        <div class="product-image">
-                        <span class="popular-badge">Popular</span>
-                            <img src="assets/img/Products/product5.jpg" alt="Igloo Cool Box">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Mini Hekis</h3>
-                            <div class="product-price">£49.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 6: Leisurewize Portawash -->
-                    <div class="product-card">
-                        <div class="product-image">
-                        <span class="popular-badge">Popular</span>
-                            <img src="assets/img/Products/product6.jpeg" alt="Leisurewize Portawash">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Microwave </h3>
-                            <div class="product-price">£109.95</div>
-                           
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 7: Streetwize Inverter -->
-                    <div class="product-card">
-                        <div class="product-image">
-                        <span class="popular-badge">Popular</span>
-                            <img src="assets/img/Products/product7.jpeg" alt="Streetwize Inverter">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Air Conditions</h3>
-                            <div class="product-price">£29.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Product 8: Vango Beta 350XL Tent -->
-                    <div class="product-card">
-                        <div class="product-image">
-                        <span class="popular-badge">Popular</span>
-                            <img src="assets/img/Products/product8.jpg" alt="Vango Beta Tent">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Hobbs</h3>
-                            <div class="product-price">£164.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Duplicate products for seamless loop -->
-                    <div class="product-card">
-                        <div class="product-image">
-                        <span class="popular-badge">Popular</span>
-                            <img src="assets/Products/product2.webp" alt="Vango Sunlight Air ProShield">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Hoobs/h3>
-                            <div class="product-price">£555.00</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card">
-                        <div class="product-image">
-                        <span class="popular-badge">Popular</span>
-                            <img src="assets/img/Products/product3.jpg" alt="Leisurewize Air Fryer">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Fridges</h3>
-                            <div class="product-price">£47.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card">
-                        <div class="product-image">
-                        <span class="popular-badge">Popular</span>
-                            <img src="assets/img/Products/product4.jpg" alt="Outdoor Revolution Heater">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Rooflights</h3>
-                            <div class="product-price">£39.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card">
-                        <div class="product-image">
-                        <span class="popular-badge">Popular</span>
-                            <img src="assets/img/Products/product1.webp" alt="Vango Peg Set">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Sinks</h3>
-                            <div class="product-price">£14.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card">
-                        <div class="product-image">
-                        <span class="popular-badge">Popular</span>
-                            <img src="assets/img/Products/product5.jpg" alt="Igloo Cool Box">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Mini Hekis</h3>
-                            <div class="product-price">£49.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card">
-                        <div class="product-image">
-                        <span class="popular-badge">Popular</span>
-                            <img src="assets/img/Products/product6.jpeg" alt="Leisurewize Portawash">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Microwave</h3>
-                            <div class="product-price">£109.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card">
-                        <div class="product-image">
-                        <span class="popular-badge">Popular</span>
-                            <img src="assets/img/Products/product7.jpeg" alt="Streetwize Inverter">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Air Conditions</h3>
-                            <div class="product-price">£29.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
-                    
-                    <div class="product-card">
-                        <div class="product-image">
-                        <span class="popular-badge">Popular</span>
-                            <img src="assets/img/Products/product8.jpg" alt="Vango Beta Tent">
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">Hobbs</h3>
-                            <div class="product-price">£164.95</div>
-                            
-                            <button class="add-to-cart-btn">Add to Cart</button>
-                        </div>
-                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
             
@@ -964,33 +678,238 @@
                     </div>
                 </div>
             </form>
-            
-            <!-- Trust badges -->
-            <!-- <div class="flex flex-wrap justify-center items-center gap-8 mt-12 fade-in" style="animation-delay: 0.4s;">
-                <div class="text-center">
-                    <div class="text-white text-3xl font-bold">100K+</div>
-                    <div class="text-orange-100">Happy Subscribers</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-white text-3xl font-bold">No Spam</div>
-                    <div class="text-orange-100">Quality Content Only</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-white text-3xl font-bold">Unsubscribe</div>
-                    <div class="text-orange-100">Any Time</div>
-                </div>
-            </div> -->
         </div>
     </section>
 
     <!-- Footer Section -->
     <?php include('include/footer.php') ?>
 
-    <!-- <script src="assets/js/script.js" /> -->
-    
-
     <?php include('include/script.php') ?>
 
-       
+    <script>
+        // Wishlist and Compare functionality
+        let wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+        let compareList = JSON.parse(localStorage.getItem('compareList') || '[]');
+        
+        // Load wishlist and cart counts on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadWishlistFromServer();
+            loadCartCount();
+            attachEventListeners();
+        });
+        
+        function attachEventListeners() {
+            // Wishlist buttons
+            document.querySelectorAll('.wishlist-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleWishlist(parseInt(btn.dataset.productId), e);
+                });
+            });
+            
+            // Compare buttons
+            document.querySelectorAll('.compare-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleCompare(parseInt(btn.dataset.productId), e);
+                });
+            });
+            
+            // Add to cart buttons
+            document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    addToCart(parseInt(btn.dataset.productId), btn);
+                });
+            });
+        }
+        
+        async function loadWishlistFromServer() {
+            try {
+                const response = await fetch('api/wishlist.php');
+                const data = await response.json();
+                
+                if (data.success && data.wishlist) {
+                    wishlist = data.wishlist.map(item => item.product_id);
+                    localStorage.setItem('wishlist', JSON.stringify(wishlist));
+                    updateWishlistButtons();
+                }
+            } catch (error) {
+                console.error('Error loading wishlist:', error);
+            }
+        }
+        
+        async function loadCartCount() {
+            try {
+                const response = await fetch('api/cart.php');
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateCartCount(data.total_items || 0);
+                }
+            } catch (error) {
+                console.error('Error loading cart count:', error);
+            }
+        }
+        
+        async function toggleWishlist(productId, event) {
+            const index = wishlist.indexOf(productId);
+            const action = index > -1 ? 'remove' : 'add';
+            
+            try {
+                const response = await fetch('api/wishlist.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: action,
+                        product_id: productId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (action === 'remove') {
+                        wishlist.splice(index, 1);
+                        showNotification('Removed from wishlist', 'info');
+                    } else {
+                        wishlist.push(productId);
+                        showNotification('Added to wishlist', 'success');
+                    }
+                    
+                    localStorage.setItem('wishlist', JSON.stringify(wishlist));
+                    updateWishlistButtons();
+                } else {
+                    showNotification(data.message || 'Failed to update wishlist', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating wishlist:', error);
+                showNotification('An error occurred. Please try again.', 'error');
+            }
+        }
+        
+        function updateWishlistButtons() {
+            document.querySelectorAll('.wishlist-btn').forEach(btn => {
+                const productId = parseInt(btn.dataset.productId);
+                if (wishlist.includes(productId)) {
+                    btn.classList.add('active');
+                    btn.innerHTML = '<i class="fas fa-heart"></i>';
+                } else {
+                    btn.classList.remove('active');
+                    btn.innerHTML = '<i class="far fa-heart"></i>';
+                }
+            });
+        }
+        
+        function toggleCompare(productId, event) {
+            const index = compareList.indexOf(productId);
+            if (index > -1) {
+                compareList.splice(index, 1);
+                showNotification('Removed from compare', 'info');
+            } else {
+                if (compareList.length >= 4) {
+                    showNotification('Maximum 4 products can be compared', 'warning');
+                    return;
+                }
+                compareList.push(productId);
+                showNotification('Added to compare', 'success');
+            }
+            
+            localStorage.setItem('compareList', JSON.stringify(compareList));
+            updateCompareButtons();
+        }
+        
+        function updateCompareButtons() {
+            document.querySelectorAll('.compare-btn').forEach(btn => {
+                const productId = parseInt(btn.dataset.productId);
+                if (compareList.includes(productId)) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+        
+        async function addToCart(productId, buttonElement) {
+            if (buttonElement) {
+                buttonElement.disabled = true;
+                const originalText = buttonElement.textContent;
+                buttonElement.textContent = 'Adding...';
+            }
+            
+            try {
+                const response = await fetch('api/cart.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'add',
+                        product_id: productId,
+                        quantity: 1
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification(data.message || 'Added to cart successfully', 'success');
+                    updateCartCount(data.cart_count || data.total_items);
+                } else {
+                    showNotification(data.message || 'Failed to add to cart', 'error');
+                }
+            } catch (error) {
+                console.error('Error adding to cart:', error);
+                showNotification('An error occurred. Please try again.', 'error');
+            } finally {
+                if (buttonElement) {
+                    buttonElement.disabled = false;
+                    buttonElement.textContent = 'Add to Cart';
+                }
+            }
+        }
+        
+        function updateCartCount(count) {
+            const cartBadge = document.querySelector('.cart-count, #cartCount');
+            if (cartBadge) {
+                cartBadge.textContent = count;
+                if (count > 0) {
+                    cartBadge.classList.remove('hidden');
+                } else {
+                    cartBadge.classList.add('hidden');
+                }
+            }
+        }
+        
+        function showNotification(message, type = 'info') {
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                warning: 'bg-yellow-500',
+                info: 'bg-blue-500'
+            };
+            
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300`;
+            notification.style.transform = 'translateX(400px)';
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 10);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(400px)';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+    </script>
 </body>
 </html>

@@ -1,21 +1,53 @@
 <?php
-// header.php - Session should already be started by the parent page
-// Just read session data here
 
-// TEMPORARY DEBUG - Remove after testing
-echo "<!-- HEADER DEBUG: ";
-echo "Session Status: " . session_status();
-echo " | Session ID: " . (session_id() ?: 'NONE');
-echo " | Logged In: " . (isset($_SESSION['logged_in']) ? ($_SESSION['logged_in'] ? 'TRUE' : 'FALSE') : 'NOT SET');
-echo " | User ID: " . (isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'NOT SET');
-echo " | User Name: " . (isset($_SESSION['user_name']) ? $_SESSION['user_name'] : 'NOT SET');
-echo " -->";
-
-// Check if user is logged in
 $isLoggedIn = isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
 $userName = $isLoggedIn ? ($_SESSION['user_name'] ?? 'User') : '';
 $userEmail = $isLoggedIn ? ($_SESSION['user_email'] ?? '') : '';
+
+// Get user_id from session
+$userId = $_SESSION['user_id'] ?? null;
+
+// Initialize counts
+$cartCount = 0;
+$favoriteCount = 0;
+
+// Fetch cart and favorite counts
+if ($userId) {
+    require_once 'config.php';
+    $conn = getDbConnection();
+    
+    if ($conn) {
+        // Get cart count - sum of all quantities
+        $cartSql = "SELECT SUM(quantity) as total FROM cart WHERE user_id = ?";
+        $cartStmt = $conn->prepare($cartSql);
+        if ($cartStmt) {
+            $cartStmt->bind_param("s", $userId);
+            $cartStmt->execute();
+            $cartResult = $cartStmt->get_result();
+            if ($cartRow = $cartResult->fetch_assoc()) {
+                $cartCount = (int)($cartRow['total'] ?? 0);
+            }
+            $cartStmt->close();
+        }
+        
+        // Get favorites count
+        $favSql = "SELECT COUNT(*) as total FROM wishlist WHERE user_id = ?";
+        $favStmt = $conn->prepare($favSql);
+        if ($favStmt) {
+            $favStmt->bind_param("s", $userId);
+            $favStmt->execute();
+            $favResult = $favStmt->get_result();
+            if ($favRow = $favResult->fetch_assoc()) {
+                $favoriteCount = (int)($favRow['total'] ?? 0);
+            }
+            $favStmt->close();
+        }
+        
+        closeDbConnection($conn);
+    }
+}
 ?>
+
 
 
 <header>
@@ -204,21 +236,23 @@ $userEmail = $isLoggedIn ? ($_SESSION['user_email'] ?? '') : '';
                                 </li>
                                 
                                 <li class="nav-item relative">
-                                    <a href="/en-gb/favorites" class="p-2 no-underline hover:bg-gray-100 rounded-full text-sm font-normal text-gray-800 inline-flex items-center touch-target" title="Favorites">
+                                    <a href="favorites.php" class="p-2 no-underline hover:bg-gray-100 rounded-full text-sm font-normal text-gray-800 inline-flex items-center touch-target" title="Favorites">
                                         <span class="sr-only">Favorites</span>
                                         <span class="pointer-events-none">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                                             </svg>
                                         </span>
-                                        <span class="absolute -top-1 -right-1 text-xs font-bold leading-none hidden bg-gray-800 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]">0</span>
+                                        <?php if ($favoriteCount > 0): ?>
+                                        <span class="absolute -top-1 -right-1 text-xs font-bold leading-none bg-gray-800 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]"><?php echo $favoriteCount; ?></span>
+                                        <?php endif; ?>
                                     </a>
                                 </li>
                                 
                                 <li class="nav-item">
-                                    <a href="/en-gb/cart" class="p-2 no-underline hover:bg-gray-100 rounded-full text-sm font-normal text-gray-800 inline-flex items-center relative gap-1 touch-target" title="Shopping Cart">
+                                    <a href="cart.php" class="p-2 no-underline hover:bg-gray-100 rounded-full text-sm font-normal text-gray-800 inline-flex items-center relative gap-1 touch-target" title="Shopping Cart">
                                         <span class="sr-only">Cart</span>
-                                        <span class="pointer-events-none text-sm">0</span>
+                                        <span class="pointer-events-none text-sm font-semibold cart-count" id="cartCount"><?php echo $cartCount; ?></span>
                                         <span class="pointer-events-none">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                                 <circle cx="9" cy="21" r="1"></circle>
@@ -228,7 +262,6 @@ $userEmail = $isLoggedIn ? ($_SESSION['user_email'] ?? '') : '';
                                         </span>
                                     </a>
                                 </li>
-                            </ul>
                         </nav>
                     </div>
                 
@@ -813,7 +846,7 @@ $userEmail = $isLoggedIn ? ($_SESSION['user_email'] ?? '') : '';
                                                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                                             </svg>
                                         </span>
-                                        Favorites
+                                        Favorites (0)
                                     </a>
                                 </li>
                                 <li>

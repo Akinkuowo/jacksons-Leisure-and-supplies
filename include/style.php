@@ -788,7 +788,7 @@
             margin-left: 4px;
         }
         
-        .add-to-cart-btn {
+        .add-to-cart {
             width: 100%;
             background: #CC4514;
             color: white;
@@ -806,7 +806,7 @@
             letter-spacing: 0.5px;
         }
         
-        .add-to-cart-btn:hover {
+        .add-to-cart:hover {
             background: #b33d12;
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(204, 69, 20, 0.3);

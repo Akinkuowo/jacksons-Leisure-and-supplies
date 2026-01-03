@@ -39,26 +39,7 @@
         $newResult = $conn->query($newSql);
         if ($newResult) {
             while ($row = $newResult->fetch_assoc()) {
-                // Generate placeholder image based on category
-                $categoryLower = strtolower($row['category'] ?? '');
-                $imageMap = [
-                    'awning' => 'assets/img/Products/product2.webp',
-                    'camping' => 'assets/img/Products/product1.webp',
-                    'caravan' => 'assets/img/Products/product8.jpg',
-                    'electrical' => 'assets/img/Products/product7.jpeg',
-                    'heating' => 'assets/img/Products/product4.jpg',
-                    'kitchen' => 'assets/img/Products/product3.jpg',
-                    'fridge' => 'assets/img/Products/product5.jpg',
-                    'water' => 'assets/img/Products/product6.jpeg'
-                ];
-                
-                $image = 'assets/img/Products/product1.webp'; // default
-                foreach ($imageMap as $key => $url) {
-                    if (strpos($categoryLower, $key) !== false) {
-                        $image = $url;
-                        break;
-                    }
-                }
+                $image = $row['image'];
                 
                 $row['image'] = $image;
                 $newProducts[] = $row;
@@ -85,25 +66,7 @@
         $popularResult = $conn->query($popularSql);
         if ($popularResult) {
             while ($row = $popularResult->fetch_assoc()) {
-                $categoryLower = strtolower($row['category'] ?? '');
-                $imageMap = [
-                    'awning' => 'assets/img/Products/product2.webp',
-                    'camping' => 'assets/img/Products/product1.webp',
-                    'caravan' => 'assets/img/Products/product8.jpg',
-                    'electrical' => 'assets/img/Products/product7.jpeg',
-                    'heating' => 'assets/img/Products/product4.jpg',
-                    'kitchen' => 'assets/img/Products/product3.jpg',
-                    'fridge' => 'assets/img/Products/product5.jpg',
-                    'water' => 'assets/img/Products/product6.jpeg'
-                ];
-                
-                $image = 'assets/img/Products/product1.webp';
-                foreach ($imageMap as $key => $url) {
-                    if (strpos($categoryLower, $key) !== false) {
-                        $image = $url;
-                        break;
-                    }
-                }
+                $image = $row['image'];
                 
                 $row['image'] = $image;
                 $popularProducts[] = $row;
@@ -343,7 +306,9 @@
                                 <div class="product-image">
                                     <span class="new-badge">NEW</span>
                                     <a href="product_detail.php?id=<?php echo $product['id']; ?>">
-                                        <img src="<?php echo htmlspecialchars($product['image']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
+                                      <img src="<?php echo htmlspecialchars($product['image']); ?>" 
+                                        alt="<?php echo htmlspecialchars($product['name']); ?>"
+                                        onerror="this.onerror=null; this.src='assets/img/Products/product1.webp';"> 
                                     </a>
                                     <div class="absolute top-2 left-2 flex flex-col gap-2">
                                         <button class="wishlist-btn bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-md hover:shadow-lg text-gray-600 hover:text-red-500" 
@@ -508,7 +473,9 @@
                                 <div class="product-image">
                                     <span class="popular-badge">Popular</span>
                                     <a href="product_detail.php?id=<?php echo $product['id']; ?>">
-                                    <img src="<?php echo htmlspecialchars($product['image']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
+                                    <img src="<?php echo htmlspecialchars($product['image']); ?>" 
+                                        alt="<?php echo htmlspecialchars($product['name']); ?>"
+                                        onerror="this.onerror=null; this.src='assets/img/Products/product1.webp';"> 
                                     </a>
                                     <div class="absolute top-2 left-2 flex flex-col gap-2">
                                         <button class="wishlist-btn bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-md hover:shadow-lg text-gray-600 hover:text-red-500" 

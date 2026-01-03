@@ -1,3 +1,23 @@
+<?php
+// header.php - Session should already be started by the parent page
+// Just read session data here
+
+// TEMPORARY DEBUG - Remove after testing
+echo "<!-- HEADER DEBUG: ";
+echo "Session Status: " . session_status();
+echo " | Session ID: " . (session_id() ?: 'NONE');
+echo " | Logged In: " . (isset($_SESSION['logged_in']) ? ($_SESSION['logged_in'] ? 'TRUE' : 'FALSE') : 'NOT SET');
+echo " | User ID: " . (isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'NOT SET');
+echo " | User Name: " . (isset($_SESSION['user_name']) ? $_SESSION['user_name'] : 'NOT SET');
+echo " -->";
+
+// Check if user is logged in
+$isLoggedIn = isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
+$userName = $isLoggedIn ? ($_SESSION['user_name'] ?? 'User') : '';
+$userEmail = $isLoggedIn ? ($_SESSION['user_email'] ?? '') : '';
+?>
+
+
 <header>
         <!-- announcement bar -->
         <?php include ('include/announcement-bar.php'); ?>
@@ -103,19 +123,88 @@
                     <div class="hidden md:flex md:flex-grow md:basis-0 justify-end">
                         <nav class="flex py-0 flex-row justify-end text-right">
                             <ul class="flex flex-nowrap flex-row gap-1 items-center">
-                                <li class="nav-item">
-                                    <a href="login.php" class="p-2 no-underline hover:underline text-sm font-normal text-gray-800 inline-flex items-center touch-target" title="Trade Login" target="_blank">
-                                        <span class="sr-only">Trade Login</span>
-                                        <span class="pointer-events-none">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                                <circle cx="12" cy="7" r="4"></circle>
-                                            </svg>
-                                        </span>
-                                    </a>
-                                </li>
+                                <!-- User Account / Profile -->
                                 <li class="nav-item relative">
-                                    <a href="/en-gb/favorites" class="p-2 no-underline hover:underline text-sm font-normal text-gray-800 inline-flex items-center touch-target" title="Favorites">
+                                    <?php if ($isLoggedIn): ?>
+                                        <!-- Logged In User - Profile Dropdown with FILLED icon -->
+                                        <div class="relative group">
+                                            <button class="p-2 no-underline bg-gray-300 rounded-full text-sm font-normal text-gray-800 inline-flex items-center touch-target" title="My Account">
+                                                <span class="sr-only">My Account</span>
+                                                <span class="pointer-events-none">
+                                                    <!-- FILLED ICON for logged in users -->
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                                        <circle cx="12" cy="7" r="4"></circle>
+                                                    </svg>
+                                                </span>
+                                            </button>
+                                            
+                                            <!-- Dropdown Menu -->
+                                            <div class="hidden group-hover:block absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                                                <!-- User Info -->
+                                                <div class="px-4 py-3 border-b border-gray-200">
+                                                    <p class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars($userName); ?></p>
+                                                    <p class="text-xs text-gray-600 mt-1"><?php echo htmlspecialchars($userEmail); ?></p>
+                                                </div>
+                                                
+                                                <!-- Menu Items -->
+                                                <div class="py-2">
+                                                    <a href="dashboard.php" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mr-3">
+                                                            <rect x="3" y="3" width="7" height="7"></rect>
+                                                            <rect x="14" y="3" width="7" height="7"></rect>
+                                                            <rect x="14" y="14" width="7" height="7"></rect>
+                                                            <rect x="3" y="14" width="7" height="7"></rect>
+                                                        </svg>
+                                                        Dashboard
+                                                    </a>
+                                                    <a href="orders.php" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mr-3">
+                                                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                                                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                                                            <path d="M16 10a4 4 0 0 1-8 0"></path>
+                                                        </svg>
+                                                        My Orders
+                                                    </a>
+                                                    <a href="profile.php" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mr-3">
+                                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                                            <circle cx="12" cy="7" r="4"></circle>
+                                                        </svg>
+                                                        My Profile
+                                                    </a>
+                                                </div>
+                                                
+                                                <!-- Logout -->
+                                                <div class="border-t border-gray-200 py-2">
+                                                    <a href="logout.php" class="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mr-3">
+                                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                                            <polyline points="16 17 21 12 16 7"></polyline>
+                                                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                                                        </svg>
+                                                        Logout
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php else: ?>
+                                        <!-- Not Logged In - Login Link with OUTLINED icon -->
+                                        <a href="login.php" class="p-2 no-underline hover:bg-gray-100 rounded-full text-sm font-normal text-gray-800 inline-flex items-center touch-target" title="Trade Login">
+                                            <span class="sr-only">Trade Login</span>
+                                            <span class="pointer-events-none">
+                                                <!-- OUTLINED ICON for non-logged in users -->
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                                    <circle cx="12" cy="7" r="4"></circle>
+                                                </svg>
+                                            </span>
+                                        </a>
+                                    <?php endif; ?>
+                                </li>
+                                
+                                <li class="nav-item relative">
+                                    <a href="/en-gb/favorites" class="p-2 no-underline hover:bg-gray-100 rounded-full text-sm font-normal text-gray-800 inline-flex items-center touch-target" title="Favorites">
                                         <span class="sr-only">Favorites</span>
                                         <span class="pointer-events-none">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -125,8 +214,9 @@
                                         <span class="absolute -top-1 -right-1 text-xs font-bold leading-none hidden bg-gray-800 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]">0</span>
                                     </a>
                                 </li>
+                                
                                 <li class="nav-item">
-                                    <a href="/en-gb/cart" class="p-2 no-underline hover:underline text-sm font-normal text-gray-800 inline-flex items-center relative gap-1 touch-target" title="Shopping Cart">
+                                    <a href="/en-gb/cart" class="p-2 no-underline hover:bg-gray-100 rounded-full text-sm font-normal text-gray-800 inline-flex items-center relative gap-1 touch-target" title="Shopping Cart">
                                         <span class="sr-only">Cart</span>
                                         <span class="pointer-events-none text-sm">0</span>
                                         <span class="pointer-events-none">
@@ -141,6 +231,7 @@
                             </ul>
                         </nav>
                     </div>
+                
                 </div>
             </div>
         </div>
@@ -149,6 +240,50 @@
         <div id="mobileMenu" class="mobile-menu md:hidden bg-white border-t border-gray-200 overflow-y-auto max-h-[calc(100vh-140px)]">
             <div class="container mx-auto px-4 max-w-7xl">
                 <nav class="py-4">
+                    <!-- Mobile user section -->
+                    <?php if ($isLoggedIn): ?>
+                        <div class="mb-4 pb-4 border-b border-gray-200">
+                            <div class="px-4 py-3 bg-gray-50 rounded-lg">
+                                <p class="text-sm font-semibold text-gray-900"><?php echo htmlspecialchars($userName); ?></p>
+                                <p class="text-xs text-gray-600 mt-1"><?php echo htmlspecialchars($userEmail); ?></p>
+                            </div>
+                            <div class="mt-3 space-y-1">
+                                <a href="dashboard.php" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mr-3">
+                                        <rect x="3" y="3" width="7" height="7"></rect>
+                                        <rect x="14" y="3" width="7" height="7"></rect>
+                                        <rect x="14" y="14" width="7" height="7"></rect>
+                                        <rect x="3" y="14" width="7" height="7"></rect>
+                                    </svg>
+                                    Dashboard
+                                </a>
+                                <a href="orders.php" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mr-3">
+                                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                                        <path d="M16 10a4 4 0 0 1-8 0"></path>
+                                    </svg>
+                                    My Orders
+                                </a>
+                                <a href="profile.php" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mr-3">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                    My Profile
+                                </a>
+                                <a href="logout.php" class="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mr-3">
+                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                        <polyline points="16 17 21 12 16 7"></polyline>
+                                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                                    </svg>
+                                    Logout
+                                </a>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                
                     <ul class="space-y-1 mobile-menu-nav">
                         <!-- Kitchen -->
                         <li class="mobile-menu-item group">
@@ -656,44 +791,46 @@
                         </li>
                     </ul>
                     
-                    <!-- Mobile user actions -->
-                    <div class="mt-6 pt-6 border-t border-gray-200">
-                        <ul class="space-y-2">
-                            <li>
-                                <a href="/en-gb/trade-login" class="flex items-center px-4 py-3 no-underline text-sm font-normal text-gray-800">
-                                    <span class="mr-3">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                            <circle cx="12" cy="7" r="4"></circle>
-                                        </svg>
-                                    </span>
-                                    Trade Login
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/en-gb/favorites" class="flex items-center px-4 py-3 no-underline text-sm font-normal text-gray-800">
-                                    <span class="mr-3">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                                        </svg>
-                                    </span>
-                                    Favorites
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/en-gb/cart" class="flex items-center px-4 py-3 no-underline text-sm font-normal text-gray-800">
-                                    <span class="mr-3">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                            <circle cx="9" cy="21" r="1"></circle>
-                                            <circle cx="20" cy="21" r="1"></circle>
-                                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                                        </svg>
-                                    </span>
-                                    Cart (0)
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
+                    <!-- Mobile user actions (for non-logged-in users) -->
+                    <?php if (!$isLoggedIn): ?>
+                        <div class="mt-6 pt-6 border-t border-gray-200">
+                            <ul class="space-y-2">
+                                <li>
+                                    <a href="login.php" class="flex items-center px-4 py-3 no-underline text-sm font-normal text-gray-800">
+                                        <span class="mr-3">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                                <circle cx="12" cy="7" r="4"></circle>
+                                            </svg>
+                                        </span>
+                                        Trade Login
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="/en-gb/favorites" class="flex items-center px-4 py-3 no-underline text-sm font-normal text-gray-800">
+                                        <span class="mr-3">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                            </svg>
+                                        </span>
+                                        Favorites
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="/en-gb/cart" class="flex items-center px-4 py-3 no-underline text-sm font-normal text-gray-800">
+                                        <span class="mr-3">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="9" cy="21" r="1"></circle>
+                                                <circle cx="20" cy="21" r="1"></circle>
+                                                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                                            </svg>
+                                        </span>
+                                        Cart (0)
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
                 </nav>
             </div>
         </div>

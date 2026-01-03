@@ -387,7 +387,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     e.preventDefault();
                     const emailInput = this.querySelector('input[type="email"]');
                     if (emailInput.value) {
-                        alert('Thank you for subscribing to our newsletter!');
+                        // alert('Thank you for subscribing to our newsletter!');
                         emailInput.value = '';
                     }
                 });
@@ -664,3 +664,43 @@ document.addEventListener('DOMContentLoaded', function() {
     })();
 </script>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Profile dropdown delay functionality
+    const profileDropdown = document.querySelector('.nav-item.relative .group');
+    
+    if (profileDropdown) {
+        let hideTimeout;
+        const dropdown = profileDropdown.querySelector('.absolute');
+        
+        if (dropdown) {
+            // Show dropdown on mouse enter
+            profileDropdown.addEventListener('mouseenter', function() {
+                clearTimeout(hideTimeout);
+                dropdown.classList.remove('hidden');
+                dropdown.classList.add('group-hover:block');
+            });
+            
+            // Hide dropdown with delay on mouse leave
+            profileDropdown.addEventListener('mouseleave', function() {
+                hideTimeout = setTimeout(function() {
+                    dropdown.classList.add('hidden');
+                    dropdown.classList.remove('group-hover:block');
+                }, 2000); // 2 second delay
+            });
+            
+            // Also handle mouse enter/leave on the dropdown itself
+            dropdown.addEventListener('mouseenter', function() {
+                clearTimeout(hideTimeout);
+            });
+            
+            dropdown.addEventListener('mouseleave', function() {
+                hideTimeout = setTimeout(function() {
+                    dropdown.classList.add('hidden');
+                    dropdown.classList.remove('group-hover:block');
+                }, 2000); // 2 second delay
+            });
+        }
+    }
+});
+</script>

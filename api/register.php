@@ -231,7 +231,7 @@ try {
             'success' => true,
             'message' => 'Account created successfully',
             'user_id' => $userId,
-            'redirect' => 'dashboard.php' // or wherever you want to redirect
+            'redirect' => '/' // or wherever you want to redirect
         ]);
     } else {
         throw new Exception('Failed to create account: ' . $stmt->error);

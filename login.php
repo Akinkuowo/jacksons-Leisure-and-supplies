@@ -8,20 +8,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome for hamburger icon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="assets/css/styles.css" rel="stylesheet" />
-
     <?php include('include/style.php') ?>
-   
 </head>
 <body class="bg-gray-50">
-    <!-- Header would be inserted here -->
     <?php include('include/header.php') ?>
 
-    <!-- Main Content -->
     <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div class="max-w-6xl w-full flex flex-col lg:flex-row shadow-xl rounded-2xl overflow-hidden">
             <!-- Left Column - Login Form -->
@@ -39,7 +33,6 @@
                     </ol>
                 </nav>
                 
-                <!-- Page Title -->
                 <h1 class="text-3xl font-bold text-gray-900 mb-8">Sign in</h1>
                 
                 <?php if (isset($_GET['registered']) && $_GET['registered'] == 'true'): ?>
@@ -60,8 +53,17 @@
                     </div>
                 <?php endif; ?>
                 
+                <?php if (isset($_GET['logout']) && $_GET['logout'] == 'success'): ?>
+                    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fas fa-info-circle text-blue-500 mr-3"></i>
+                            <p class="text-blue-700 font-medium">You have been logged out successfully.</p>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                
                 <!-- Login Form -->
-                <form id="loginForm" action="process_login.php" method="POST" class="space-y-6">
+                <form id="loginForm" action="api/process_login.php" method="POST" class="space-y-6">
                     <div>
                         <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
                             Email Address:
@@ -70,8 +72,9 @@
                                id="email" 
                                name="email" 
                                required 
-                               class="w-full px-4 py-3 border border-gray-300 rounded-lg form-input focus:outline-none"
-                               placeholder="your.email@example.com">
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg form-input focus:outline-none focus:ring-2 focus:ring-green-500"
+                               placeholder="your.email@example.com"
+                               value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
                         <div id="emailError" class="error-message"></div>
                     </div>
                     
@@ -84,11 +87,11 @@
                                    id="password" 
                                    name="password" 
                                    required 
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg form-input focus:outline-none pr-12"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg form-input focus:outline-none focus:ring-2 focus:ring-green-500 pr-12"
                                    placeholder="Enter your password">
                             <button type="button" 
                                     id="togglePassword" 
-                                    class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                                    class="absolute right-3 top-3 text-gray-400 hover:text-gray-600 focus:outline-none">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>
@@ -111,6 +114,7 @@
                     </div>
                     
                     <button type="submit" 
+                            id="submitBtn"
                             class="w-full btn-primary text-white font-semibold py-3 px-4 rounded-lg hover:bg-green-800 transition duration-300">
                         Sign in
                     </button>
@@ -124,9 +128,12 @@
                                 <?php 
                                 $errors = [
                                     'invalid' => 'Invalid email or password.',
-                                    'locked' => 'Account is temporarily locked. Please try again later.',
-                                    'inactive' => 'Account is inactive. Please contact support.',
-                                    'not_found' => 'No account found with this email.'
+                                    'locked' => 'Account is temporarily locked due to multiple failed login attempts. Please try again in 15 minutes.',
+                                    'inactive' => 'Your account is inactive. Please contact support.',
+                                    'not_found' => 'No account found with this email address.',
+                                    'empty' => 'Please enter both email and password.',
+                                    'config' => 'System configuration error. Please contact support.',
+                                    'system' => 'A system error occurred. Please try again later.'
                                 ];
                                 echo $errors[$_GET['error']] ?? 'An error occurred. Please try again.';
                                 ?>
@@ -173,7 +180,6 @@
                     Create Account
                 </a>
                 
-                <!-- Additional Benefits -->
                 <div class="mt-12 pt-8 border-t border-green-500">
                     <h3 class="text-xl font-bold mb-4">Trade Account Benefits</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -199,12 +205,8 @@
         </div>
     </div>
 
-     <!-- Footer Section -->
-     <?php include('include/footer.php') ?>
-
-
-    <?php include('include/script.php') ?>
-
+    <?php include('include/footer.php') ?>
+    <!-- <?php include('include/script.php') ?> -->
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -212,6 +214,7 @@
             const emailInput = document.getElementById('email');
             const passwordInput = document.getElementById('password');
             const togglePasswordBtn = document.getElementById('togglePassword');
+            const submitBtn = document.getElementById('submitBtn');
             
             // Toggle password visibility
             togglePasswordBtn.addEventListener('click', function() {
@@ -249,6 +252,10 @@
                 
                 if (!isValid) {
                     e.preventDefault();
+                } else {
+                    // Show loading state
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Signing in...';
                 }
             });
             
